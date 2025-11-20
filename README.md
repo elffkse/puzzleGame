@@ -1,2 +1,2 @@
 # puzzleGame
-isteyen istediği gibi düzenleyebilir
+kodları isteyen istediği gibi düzenleyebilir
