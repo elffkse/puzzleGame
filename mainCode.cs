@@ -1,8 +1,18 @@
-﻿namespace Square_Puzzle_Game
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics.Eventing.Reader;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Square_Puzzle_Game
 {
     internal class Program
     {
         static private Random random = new Random();
+        static private int[,,] ArrayOfPieces = new int[5, 5, 20];
+        static private int[] ArrayOfLetterNumbers = new int[20];
+
         static void Main(string[] args)
         {
             string[] letterSequenceString;
@@ -20,13 +30,13 @@
                 {
                     Console.Write("Pieces: ");
                 }
-                else if(isWithinRange == false)
+                else if (isWithinRange == false)
                 {
                     Console.Write("Out of the range! Please enter the values between 2 and 12: ");
                 }
                 string letterSequence = Console.ReadLine();
                 Console.SetCursorPosition(0, 0);
-                Console.Write(new string(' ' , 200));
+                Console.Write(new string(' ', 200));
                 letterSequenceString = letterSequence.Split(' ');
                 letterSequenceInt = new int[letterSequenceString.Length];
 
@@ -57,14 +67,14 @@
             int positionRow = 1;
             int pieceCounter = 0;
             for (int i = 0; i < 4; i++, positionRow += 7)
-            {  
+            {
                 int positionColumn = 150;
                 for (int j = 0; j < 5; j++, positionColumn += 10)
                 {
-                    Generate_Piece(letterSequenceInt[pieceCounter], positionColumn, positionRow, alphabet[pieceCounter]);  
+                    Generate_Piece(letterSequenceInt[pieceCounter], positionColumn, positionRow, alphabet[pieceCounter], pieceCounter);
                     pieceCounter++;
 
-                    if(pieceCounter > letterSequenceString.Length - 1)
+                    if (pieceCounter > letterSequenceString.Length - 1)
                     {
                         break;
                     }
@@ -77,8 +87,9 @@
             Console.ReadKey();
         }
         //------GENERATE_PIECE_FUNCTION---------------------------------------------------------------
-        static (int[] letterRows, int[] letterColumns) Generate_Piece(int letterNumber, int positionColumn, int positionRow, string alphabet)
+        static void Generate_Piece(int letterNumber, int positionColumn, int positionRow, string alphabet, int pieceCounter)
         {
+            ArrayOfLetterNumbers[pieceCounter] = letterNumber;
             //------VARIABLES-------------------------------------------------------------------------
             int[,] pieces = new int[5, 5];
             int[] letterRows = new int[letterNumber];
@@ -92,7 +103,8 @@
             pieces[rowFirstLetter, columnFirstLetter] = 1; // that area is full
             counter++;
 
-            //------Random Letter Placement Mechanic--------------------------------------------------
+            //------RANDOM LETTER PLACEMENT MECHANİC--------------------------------------------------
+
             for (int i = 1; i < letterNumber; i++)
             {
                 int randomChooseLetter = random.Next(0, counter);
@@ -103,7 +115,7 @@
                     letterRows[counter] = letterRows[randomChooseLetter] - 1;
                     letterColumns[counter] = letterColumns[randomChooseLetter];
                     pieces[letterRows[counter], letterColumns[counter]] = 1;
-                    counter++; 
+                    counter++;
                 }
                 else if (direction == 2 && letterColumns[randomChooseLetter] != 4 && pieces[letterRows[randomChooseLetter], letterColumns[randomChooseLetter] + 1] != 1)
                 {
@@ -124,7 +136,7 @@
                     letterColumns[counter] = letterColumns[randomChooseLetter] - 1;
                     letterRows[counter] = letterRows[randomChooseLetter];
                     pieces[letterRows[counter], letterColumns[counter]] = 1;
-                    counter++; 
+                    counter++;
                 }
                 else
                 {
@@ -144,7 +156,7 @@
                 if (letterColumns[letter] < current_distance_left)
                 {
                     current_distance_left = letterColumns[letter];
-                }  
+                }
             }
             for (int letter = 0; letter < letterRows.Length; letter++)
             {
@@ -152,8 +164,23 @@
                 letterColumns[letter] -= current_distance_left;
             }
 
-            //------PRINT THE PİECES ON THE SCREEN----------------------------------------------------
-            for (int row = 0; row < 5 ; row++, positionRow++)
+            //------SAVE THE PİECE--------------------------------------------------------------------
+            for (int i = 0; i < 5; i++)
+            {
+                for (int j = 0; j < 5; j++)
+                {
+                    for (int k = 0; k < letterNumber; k++)
+                    {
+                        if (i == letterRows[k] && j == letterColumns[k])
+                        {
+                            ArrayOfPieces[i, j, pieceCounter] = 1; //that area is full
+                        }
+                    }
+                }
+            }
+
+            //------PRINT THE PİECE ON THE SCREEN----------------------------------------------------
+            for (int row = 0; row < 5; row++, positionRow++)
             {
                 Console.SetCursorPosition(positionColumn, positionRow);
                 for (int column = 0; column < 5; column++)
@@ -177,7 +204,10 @@
                     }
                 }
             }
-            return (letterRows, letterColumns);
+        }
+        static bool ComparePieces(int pieceCounter)
+        {
+
         }
     }
 }
