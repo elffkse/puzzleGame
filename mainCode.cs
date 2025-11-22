@@ -10,7 +10,7 @@ namespace Square_Puzzle_Game
     internal class Program
     {
         static private Random random = new Random();
-        static private int[,,] ArrayOfPieces = new int[5, 5, 20];
+        static private int[,,,] ArrayOfPieces = new int[8, 20, 5, 5];
         static private int[] ArrayOfLetterNumbers = new int[20];
 
         static void Main(string[] args)
@@ -173,7 +173,7 @@ namespace Square_Puzzle_Game
                     {
                         if (i == letterRows[k] && j == letterColumns[k])
                         {
-                            ArrayOfPieces[i, j, pieceCounter] = 1; //that area is full
+                            ArrayOfPieces[0, pieceCounter, i, j] = 1; //that area is full
                         }
                     }
                 }
