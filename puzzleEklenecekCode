@@ -1,0 +1,287 @@
+using System;
+
+namespace PBL
+{
+    internal class Program
+    {
+        static private Random zar = new Random(); // class içinde genel random olarak çalışması için statik private tanımladık
+
+        
+        static int[,,,] ParcaMatrisi = new int[8, 20, 5, 5]; 
+
+        static int[] ParcaBlokSayilari = new int[20]; // her parça üretildiğinde onun kaç kareden oluştuğunu not ettik. kopya kontrolü için
+
+        static void Main(string[] args)
+        {
+            Console.Clear();
+            int UIWidth = 30;
+            int UIHeight = 20;
+
+            UI(UIWidth, UIHeight);
+
+            Console.SetCursorPosition(0, 0); // UI çizildikten sonra ekranda başa dön
+
+            Console.Write("Enter piece count for how many matrix you want: ");
+            string girdi = Console.ReadLine();
+
+            string[] harfSayıMetniDizisi = girdi.Split(new[] { ' ' });
+            int[] harfSayıTamsayıDizisi = new int[harfSayıMetniDizisi.Length];
+            char[] harfListesi = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T' };
+
+            if (harfSayıMetniDizisi.Length > 20)
+            {
+                Console.SetCursorPosition(0, UIHeight + 3);
+                Console.WriteLine("You can enter maximum 20 pieces.");
+                Console.ReadKey();
+                return;
+            }
+            else
+            {
+                for (int i = 0; i < harfSayıMetniDizisi.Length; i++)
+                    harfSayıTamsayıDizisi[i] = Convert.ToInt32(harfSayıMetniDizisi[i]); //.split() ile alınan string diziyi int'e çevirdik
+
+
+                int konumSatir = 1;
+                int parçaSayacı = 0;
+
+                // konumSatir += 7: 5x5 matrixde çalışıyoruz. basımda 2 satır boşluk kalması için 5+2
+                for (int i = 0; i < 4; i++, konumSatir += 7)
+                {
+                    if (parçaSayacı >= harfSayıMetniDizisi.Length) break;
+
+                    int konumSutun = UIWidth + 5;
+
+                    // oluşum satır satır yapılmakta. nested loop ile yana kayarak oluşumun devam etmesini sağladık
+                    for (int j = 0; j < 5;)
+                    {
+                        if (parçaSayacı >= harfSayıMetniDizisi.Length) break;
+
+                        // yazdırmadan önce eşsiz parça üretimini 4 adımda fonksiyonlarla sağladık
+                        Parça_Oluştur(harfSayıTamsayıDizisi[parçaSayacı], parçaSayacı);
+
+                        VaryasyonlariOlustur(parçaSayacı);
+
+                        bool kopyaMi = false;
+                        if (parçaSayacı > 0)
+                        {
+                            kopyaMi = KopyaVarMi(parçaSayacı);
+                        }
+
+                        if (kopyaMi)
+                            continue; //kopya diziye eklenmeden aynı adımdan döngü başa sarar
+
+                        ParcayiCiz(parçaSayacı, konumSutun, konumSatir, harfListesi[parçaSayacı]);
+
+                        parçaSayacı++;
+                        j++;
+                        konumSutun += 10;
+                        //buradaki piece bastırım yapıldıgı yerleri; puzzle ve regtengular yazı yerlerini eklerken estetik kaygılarla uyarlamanız gerekmekte
+                    }
+                }
+
+                Console.SetCursorPosition(0, UIHeight + 3);
+                Console.Write("Press any key to exit...");
+                Console.ReadKey();
+            }
+        }
+
+        // parçaları rastgele oluşturup array içine kaydettik
+        static void Parça_Oluştur(int harfSayısı, int parçaIndex)
+        {
+            
+            ParcaBlokSayilari[parçaIndex] = harfSayısı;
+
+            //döngülü işlemler için matrisi sıfırladık
+            for (int r = 0; r < 5; r++) for (int c = 0; c < 5; c++) ParcaMatrisi[0, parçaIndex, r, c] = 0;
+
+            // Senin orijinal değişkenlerin (Local diziler de duruyor ama asıl işi global dizi yapıyor)
+            int[] harfSatırları = new int[harfSayısı];
+            int[] harfSütunları = new int[harfSayısı];
+            int sayaç = 0;
+
+            int ilkHarfSatırı = zar.Next(0, 5);
+            int ilkHarfSütunu = zar.Next(0, 5);
+
+            // Yayılma çizimi için ilk noktayı kayıt ettik
+            harfSatırları[sayaç] = ilkHarfSatırı;
+            harfSütunları[sayaç] = ilkHarfSütunu;
+            ParcaMatrisi[0, parçaIndex, ilkHarfSatırı, ilkHarfSütunu] = 1; // Dolu parça == 1
+            sayaç++;
+
+            //yayılım işlemi
+            for (int i = 1; i < harfSayısı; i++)
+            {
+                int rastgeleHarfSeç = zar.Next(0, sayaç);
+                int yön = zar.Next(1, 5); // Random yönde yayılım ( 1: yukarı, 2: sağ, 3: aşağı, 4: sol)
+
+                int yeniSatir = harfSatırları[rastgeleHarfSeç];
+                int yeniSutun = harfSütunları[rastgeleHarfSeç]; 
+
+                if (yön == 1 && harfSatırları[rastgeleHarfSeç] != 0 && ParcaMatrisi[0, parçaIndex, harfSatırları[rastgeleHarfSeç] - 1, harfSütunları[rastgeleHarfSeç]] != 1)
+                {
+                    harfSatırları[sayaç] = harfSatırları[rastgeleHarfSeç] - 1;
+                    harfSütunları[sayaç] = harfSütunları[rastgeleHarfSeç];
+                    ParcaMatrisi[0, parçaIndex, harfSatırları[sayaç], harfSütunları[sayaç]] = 1; // matrixi dolu == 1 yaptık
+                    sayaç++;
+                }
+                else if (yön == 2 && harfSütunları[rastgeleHarfSeç] != 4 && ParcaMatrisi[0, parçaIndex, harfSatırları[rastgeleHarfSeç], harfSütunları[rastgeleHarfSeç] + 1] != 1)
+                {
+                    harfSütunları[sayaç] = harfSütunları[rastgeleHarfSeç] + 1;
+                    harfSatırları[sayaç] = harfSatırları[rastgeleHarfSeç];
+                    ParcaMatrisi[0, parçaIndex, harfSatırları[sayaç], harfSütunları[sayaç]] = 1;
+                    sayaç++;
+                }
+                else if (yön == 3 && harfSatırları[rastgeleHarfSeç] != 4 && ParcaMatrisi[0, parçaIndex, harfSatırları[rastgeleHarfSeç] + 1, harfSütunları[rastgeleHarfSeç]] != 1)
+                {
+                    harfSatırları[sayaç] = harfSatırları[rastgeleHarfSeç] + 1;
+                    harfSütunları[sayaç] = harfSütunları[rastgeleHarfSeç];
+                    ParcaMatrisi[0, parçaIndex, harfSatırları[sayaç], harfSütunları[sayaç]] = 1;
+                    sayaç++;
+                }
+                else if (yön == 4 && harfSütunları[rastgeleHarfSeç] != 0 && ParcaMatrisi[0, parçaIndex, harfSatırları[rastgeleHarfSeç], harfSütunları[rastgeleHarfSeç] - 1] != 1)
+                {
+                    harfSütunları[sayaç] = harfSütunları[rastgeleHarfSeç] - 1;
+                    harfSatırları[sayaç] = harfSatırları[rastgeleHarfSeç];
+                    ParcaMatrisi[0, parçaIndex, harfSatırları[sayaç], harfSütunları[sayaç]] = 1;
+                    sayaç++;
+                }
+                else
+                {
+                    i--; // Geçersiz bir hareket yapıldıysa, döngü sayacınının korunmasını sağladık
+                }
+            }
+            VaryasyonuSolaYasla(0, parçaIndex);
+        }
+
+       
+        static void ParcayiCiz(int parçaIndex, int konumSutun, int konumSatir, char parçaHarfi)
+        {
+            for (int r = 0; r < 5; r++)
+            {
+                Console.SetCursorPosition(konumSutun, konumSatir + r);
+                for (int c = 0; c < 5; c++)
+                {
+                    if (ParcaMatrisi[0, parçaIndex, r, c] == 1)
+                    {
+                        Console.Write(parçaHarfi);
+                    }
+                    else
+                    {
+                        Console.Write("*");
+                    }
+                }
+            }
+        }
+        static void VaryasyonlariOlustur(int parçaIndex)
+        {
+            //2 girdi için birden fazla girmek gibi durumlarda çöküyor. debug lazım
+
+            MatrisiAynala(parçaIndex, 0, 4);
+            
+            for (int i = 0; i < 3; i++)
+            {
+                MatrisiDondur(parçaIndex, 0 + i, 0 + i + 1);
+
+                MatrisiDondur(parçaIndex, 4 + i, 4 + i + 1);
+            }
+
+            //kontrol yapabilmek için hizaladık
+            for (int v = 1; v < 8; v++) VaryasyonuSolaYasla(v, parçaIndex);
+        }
+
+        static void MatrisiDondur(int pIndex, int src, int dest)
+        {
+            for (int r = 0; r < 5; r++) // r= row , c=column
+                for (int c = 0; c < 5; c++)
+                {
+                    ParcaMatrisi[dest, pIndex, c, 4 - r] = 0; //döndürme işleminde satırlar sütun konumunda olmakta. sütunlar ise ters satır konumunda
+                    if (ParcaMatrisi[src, pIndex, r, c] == 1) //src veriyi hangi yerden aldığımız
+                        ParcaMatrisi[dest, pIndex, c, 4 - r] = 1; //dest veriyi hangi yere kaydettiğimiz
+                }
+        }
+
+        static void MatrisiAynala(int pIndex, int src, int dest)
+        {
+            for (int r = 0; r < 5; r++)
+                for (int c = 0; c < 5; c++)
+                    ParcaMatrisi[dest, pIndex, r, 4 - c] = ParcaMatrisi[src, pIndex, r, c];
+        }
+
+        static void VaryasyonuSolaYasla(int pozisyon, int pIndex)
+        {
+            int minRow= 5, minC = 5;
+            bool bos = true;
+            //her kareyi gezip en küçük dolu satır ve sütunu bulduk. konumu 0-0 yaparak sola kaydırdık
+            for (int r = 0; r < 5; r++)
+                for (int c = 0; c < 5; c++)
+                    if (ParcaMatrisi[pozisyon, pIndex, r, c] == 1)
+                    {
+                        bos = false;
+                        if (r < minRow) minRow = r;
+                        if (c < minC) minC = c;
+                    }
+            //zaten en sola yaslı ise işlem yapma
+            if (minRow == 0 && minC == 0) return;
+
+            int[,] temp = new int[5, 5];
+            for (int r = 0; r < 5; r++)
+                for (int c = 0; c < 5; c++)
+                    if (ParcaMatrisi[pozisyon, pIndex, r, c] == 1)
+                        temp[r - minRow, c - minC] = 1;
+            //main matrixi sola kaymış haliyle güncelledik
+            for (int r = 0; r < 5; r++)
+                for (int c = 0; c < 5; c++)
+                    ParcaMatrisi[pozisyon, pIndex, r, c] = temp[r, c];
+        }
+
+        //güncelden başlayıp parçanın öncekilerle kopya olup olmadığını kontrol ettik
+        static bool KopyaVarMi(int current)
+        {
+            for (int previous = 0; previous < current; previous++)
+            {
+                //blok sayıları eşit değilse kopya olamaz. pas geç
+                if (ParcaBlokSayilari[current] != ParcaBlokSayilari[previous]) 
+                    continue;
+
+                for (int v = 0; v < 8; v++)
+                {
+                    if (MatrislerEsitMi(v, current, 0, previous))
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        static bool MatrislerEsitMi(int v1, int idx1, int v2, int idx2)
+        {
+            for (int r = 0; r < 5; r++)
+                for (int c = 0; c < 5; c++)
+                    if (ParcaMatrisi[v1, idx1, r, c] != ParcaMatrisi[v2, idx2, r, c])
+                        return false;
+            return true;
+        }
+
+        static void UI(int genişlik, int yükseklik)
+        {
+            Console.SetCursorPosition(1, 1);
+            Console.Write("+");
+            for (int i = 0; i < genişlik; i++) Console.Write("-");
+            Console.Write("+");
+
+            for (int i = 0; i < yükseklik; i++)
+            {
+                Console.SetCursorPosition(1, 2 + i);
+                Console.Write("|");
+                Console.SetCursorPosition(2 + genişlik, 2 + i);
+                Console.Write("|");
+            }
+
+            Console.SetCursorPosition(1, 2 + yükseklik);
+            Console.Write("+");
+            for (int i = 0; i < genişlik; i++) Console.Write("-");
+            Console.Write("+");
+
+            Console.SetCursorPosition(0, 0);
+        }
+    }
+}
