@@ -4,10 +4,10 @@ namespace PBL
 {
     internal class Program
     {
-        static private Random zar = new Random(); 
+        static private Random zar = new Random();
 
-        
-        static int[,,,] ParcaMatrisi = new int[8, 20, 5, 5]; 
+
+        static int[,,,] ParcaMatrisi = new int[8, 20, 5, 5];
 
         static int[] ParcaBlokSayilari = new int[20]; //kopya kontrolü için
 
@@ -16,11 +16,10 @@ namespace PBL
             Console.Clear();
             int UIWidth = 30;
             int UIHeight = 20;
-
+            Console.ForegroundColor = ConsoleColor.Yellow;
             UI(UIWidth, UIHeight);
-
+            Console.ResetColor();
             Console.SetCursorPosition(0, 0); // UI çizildikten sonra ekranda başa dön
-
             Console.Write("Enter piece count for how many matrix you want: ");
             string girdi = Console.ReadLine();
 
@@ -88,7 +87,7 @@ namespace PBL
         // parçaları rastgele oluşturup array içine kaydettik
         static void Parça_Oluştur(int harfSayısı, int parçaIndex)
         {
-            
+
             ParcaBlokSayilari[parçaIndex] = harfSayısı;
 
             //döngülü işlemler için matrisi sıfırladık
@@ -115,7 +114,7 @@ namespace PBL
                 int yön = zar.Next(1, 5); // Random yönde yayılım ( 1: yukarı, 2: sağ, 3: aşağı, 4: sol)
 
                 int yeniSatir = harfSatırları[rastgeleHarfSeç];
-                int yeniSutun = harfSütunları[rastgeleHarfSeç]; 
+                int yeniSutun = harfSütunları[rastgeleHarfSeç];
 
                 if (yön == 1 && harfSatırları[rastgeleHarfSeç] != 0 && ParcaMatrisi[0, parçaIndex, harfSatırları[rastgeleHarfSeç] - 1, harfSütunları[rastgeleHarfSeç]] != 1)
                 {
@@ -153,7 +152,7 @@ namespace PBL
             VaryasyonuSolaYasla(0, parçaIndex);
         }
 
-       
+
         static void ParcayiCiz(int parçaIndex, int konumSutun, int konumSatir, char parçaHarfi)
         {
             for (int r = 0; r < 5; r++)
@@ -163,11 +162,15 @@ namespace PBL
                 {
                     if (ParcaMatrisi[0, parçaIndex, r, c] == 1)
                     {
+                        Console.ForegroundColor = ConsoleColor.Magenta ;
                         Console.Write(parçaHarfi);
+                        Console.ResetColor();
                     }
                     else
                     {
+                        Console.ForegroundColor = ConsoleColor.Yellow;
                         Console.Write("*");
+                        Console.ResetColor();
                     }
                 }
             }
@@ -177,7 +180,7 @@ namespace PBL
             //2 girdi için birden fazla girmek gibi durumlarda çöküyor. debug lazım
 
             MatrisiAynala(parçaIndex, 0, 4);
-            
+
             for (int i = 0; i < 3; i++)
             {
                 MatrisiDondur(parçaIndex, 0 + i, 0 + i + 1);
@@ -209,7 +212,7 @@ namespace PBL
 
         static void VaryasyonuSolaYasla(int pozisyon, int pIndex)
         {
-            int minRow= 5, minC = 5;
+            int minRow = 5, minC = 5;
             bool bos = true;
             //her kareyi gezip en küçük dolu satır ve sütunu bulduk. konumu 0-0 yaparak sola kaydırdık
             for (int r = 0; r < 5; r++)
@@ -240,7 +243,7 @@ namespace PBL
             for (int previous = 0; previous < current; previous++)
             {
                 //blok sayıları eşit değilse kopya olamaz. pas geç
-                if (ParcaBlokSayilari[current] != ParcaBlokSayilari[previous]) 
+                if (ParcaBlokSayilari[current] != ParcaBlokSayilari[previous])
                     continue;
 
                 for (int v = 0; v < 8; v++)
