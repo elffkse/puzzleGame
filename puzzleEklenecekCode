@@ -4,12 +4,12 @@ namespace PBL
 {
     internal class Program
     {
-        static private Random zar = new Random(); // class içinde genel random olarak çalışması için statik private tanımladık
+        static private Random zar = new Random(); 
 
         
         static int[,,,] ParcaMatrisi = new int[8, 20, 5, 5]; 
 
-        static int[] ParcaBlokSayilari = new int[20]; // her parça üretildiğinde onun kaç kareden oluştuğunu not ettik. kopya kontrolü için
+        static int[] ParcaBlokSayilari = new int[20]; //kopya kontrolü için
 
         static void Main(string[] args)
         {
@@ -94,7 +94,7 @@ namespace PBL
             //döngülü işlemler için matrisi sıfırladık
             for (int r = 0; r < 5; r++) for (int c = 0; c < 5; c++) ParcaMatrisi[0, parçaIndex, r, c] = 0;
 
-            // Senin orijinal değişkenlerin (Local diziler de duruyor ama asıl işi global dizi yapıyor)
+            //iki farklı dizide kayıt altına almış olduk
             int[] harfSatırları = new int[harfSayısı];
             int[] harfSütunları = new int[harfSayısı];
             int sayaç = 0;
@@ -149,7 +149,7 @@ namespace PBL
                 {
                     i--; // Geçersiz bir hareket yapıldıysa, döngü sayacınının korunmasını sağladık
                 }
-            }
+            } //kontrol yapabilmek için her parçayı sola yasladık
             VaryasyonuSolaYasla(0, parçaIndex);
         }
 
@@ -252,15 +252,16 @@ namespace PBL
             return false;
         }
 
-        static bool MatrislerEsitMi(int v1, int idx1, int v2, int idx2)
+        static bool MatrislerEsitMi(int varyasyon1, int parçaidx1, int varyasyon2, int parçaidx2)
         {
             for (int r = 0; r < 5; r++)
                 for (int c = 0; c < 5; c++)
-                    if (ParcaMatrisi[v1, idx1, r, c] != ParcaMatrisi[v2, idx2, r, c])
+                    if (ParcaMatrisi[varyasyon1, parçaidx1, r, c] != ParcaMatrisi[varyasyon2, parçaidx2, r, c])
                         return false;
             return true;
         }
 
+        //arayüzün içine çizilecek puzzle ve arayüzü fonk olarak yazdırmak işleri kolaylaştıracagı için UI yi fonk yazdırdık
         static void UI(int genişlik, int yükseklik)
         {
             Console.SetCursorPosition(1, 1);
