@@ -423,57 +423,7 @@ namespace PBL
             return true;
         }
 
-        // melih mevcut puzzleye komşu rastgele bir konum bul
-        static int[] KomsuKonumBul()
-        {
-            // dolu alanları bul
-            int[] satırlar = new int[600];
-            int[] sutunlar = new int[600];
-            int sayac = 0;
-
-            for (int r = 0; r < 20; r++)
-            {
-                for (int c = 0; c < 30; c++)
-                {
-                    if (PuzzleAlani[r, c] != 0)
-                    {
-                        satırlar[sayac] = r;
-                        sutunlar[sayac] = c;
-                        sayac++;
-                    }
-                }
-            }
-
-            if (sayac == 0) return null;
-
-            // rastgele bir dolu alan seç ve onun komşusunu dene
-            int maxDeneme = 50;
-            for (int deneme = 0; deneme < maxDeneme; deneme++)
-            {
-                int rastgele = zar.Next(0, sayac);
-                int r = satırlar[rastgele];
-                int c = sutunlar[rastgele];
-
-                // 4 yönden rastgele birini seç
-                int yon = zar.Next(0, 4);
-                int yeniR = r;
-                int yeniC = c;
-
-                if (yon == 0) yeniR = r - 1; // yukarı
-                else if (yon == 1) yeniC = c + 1; // sağ
-                else if (yon == 2) yeniR = r + 1; // aşağı
-                else yeniC = c - 1; // sol
-
-                // sınır kontrolü
-                if (yeniR >= 0 && yeniR < 20 && yeniC >= 0 && yeniC < 30)
-                {
-                    return new int[] { yeniR, yeniC };
-                }
-            }
-
-            return null;
-        }
-
+        
         // melih puzzleı UI içindeki alana çiz
         static void PuzzleCizUIIcinde(int UIWidth, int UIHeight, char[] harfListesi)
         {
