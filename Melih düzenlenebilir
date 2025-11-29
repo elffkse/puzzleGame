@@ -438,7 +438,7 @@ namespace PBL
                     {
                         int parcaNo = PuzzleAlani[r, c] - 1;
                         Console.ForegroundColor = ConsoleColor.Cyan;
-                        Console.Write(harfListesi[parcaNo]);
+                        Console.Write("X")
                         Console.ResetColor();
                     }
                     else
