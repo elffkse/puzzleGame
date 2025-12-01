@@ -1,0 +1,708 @@
+using System;
+using System.ComponentModel;
+using System.Diagnostics.Eventing.Reader;
+
+namespace PBL
+{
+    internal class Program
+    {
+        static private Random zar = new Random();
+
+        static int[,,,] ParcaMatrisi = new int[8, 20, 5, 5];
+        //movementte yok etmemek icin harfleri buraya aldim efe
+        static char[] harfListesi = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T' };
+
+        static int[] ParcaBlokSayilari = new int[20]; //kopya kontrolü için
+
+        // melih  Puzzle oluşturma için kullanılacak oyun alanı
+        static int[,] PuzzleAlani = new int[20, 30];
+
+        // melih Her parçanın puzzle'daki konumunu saklamak için
+        static int[] ParcaPuzzleSatir = new int[20];
+        static int[] ParcaPuzzleSutun = new int[20];
+        static int[] ParcaKullanilanVaryasyon = new int[20];
+
+        static void Main(string[] args)
+        {
+            Console.Clear();
+            int UIWidth = 30;
+            int UIHeight = 20;
+
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            UI(UIWidth, UIHeight);
+            Console.ResetColor();
+
+            Console.SetCursorPosition(0, 0); // UI çizildikten sonra ekranda başa dön
+            Console.Write("Enter piece count for how many matrix you want: ");
+            string girdi = Console.ReadLine();
+
+            string[] harfSayıMetniDizisi = girdi.Split(new[] { ' ' });
+            int[] harfSayıTamsayıDizisi = new int[harfSayıMetniDizisi.Length];
+            //harflistesini buradan aldim lazim.
+
+            Console.SetCursorPosition(0, UIHeight + 3);
+            Console.Write("Min. Regularity (0,1 - 1,0): ");
+            double minReg = Convert.ToDouble(Console.ReadLine());
+
+            Console.SetCursorPosition(0, UIHeight + 4);
+            Console.Write("Max. Regularity (0,1 - 1,0): ");
+            double maxReg = Convert.ToDouble(Console.ReadLine());
+
+            if (harfSayıMetniDizisi.Length > 20)
+            {
+                Console.SetCursorPosition(0, UIHeight + 3);
+                Console.WriteLine("You can enter maximum 20 pieces.");
+                Console.ReadKey();
+                return;
+            }
+            else
+            {
+                for (int i = 0; i < harfSayıMetniDizisi.Length; i++)
+                    harfSayıTamsayıDizisi[i] = Convert.ToInt32(harfSayıMetniDizisi[i]); //.split() ile alınan string diziyi int'e çevirdik
+
+                int konumSatir = 1;
+                int parçaSayacı = 0;
+
+                // konumSatir += 7: 5x5 matrixde çalışıyoruz. basımda 2 satır boşluk kalması için 5+2
+                for (int i = 0; i < 4; i++, konumSatir += 7)
+                {
+                    if (parçaSayacı >= harfSayıMetniDizisi.Length) break;
+
+                    int konumSutun = UIWidth + 5;
+
+                    // oluşum satır satır yapılmakta. nested loop ile yana kayarak oluşumun devam etmesini sağladık
+                    for (int j = 0; j < 5;)
+                    {
+                        if (parçaSayacı >= harfSayıMetniDizisi.Length) break;
+
+                        // yazdırmadan önce eşsiz parça üretimini 4 adımda fonksiyonlarla sağladık
+                        Parça_Oluştur(harfSayıTamsayıDizisi[parçaSayacı], parçaSayacı);
+
+                        VaryasyonlariOlustur(parçaSayacı);
+
+                        bool kopyaMi = false;
+                        if (parçaSayacı > 0)
+                        {
+                            kopyaMi = KopyaVarMi(parçaSayacı);
+                        }
+
+                        if (kopyaMi)
+                            continue; //kopya diziye eklenmeden aynı adımdan döngü başa sarar
+
+                        ParcayiCiz(parçaSayacı, konumSutun, konumSatir, harfListesi[parçaSayacı]);
+
+                        parçaSayacı++;
+                        j++;
+                        konumSutun += 10;
+                        //buradaki piece bastırım yapıldıgı yerleri; puzzle ve regtengular yazı yerlerini eklerken estetik kaygılarla uyarlamanız gerekmekte
+                    }
+                }
+
+                bool uygunPuzzleBulundu = false;
+                int denemeSayisi = 0;
+                double mevcutRegularity = 0;
+
+                Console.SetCursorPosition(0, UIHeight + 6);
+                Console.WriteLine("Generating puzzle, please wait...");
+
+                while(!uygunPuzzleBulundu)
+                {
+                    denemeSayisi++;
+
+                    bool puzzleOldu = PuzzleOlustur(parçaSayacı);
+
+                    if (puzzleOldu)
+                    {
+                        mevcutRegularity = calculate_regularity(PuzzleAlani);
+
+                        if (mevcutRegularity >= minReg && mevcutRegularity <= maxReg)
+                        {
+                            uygunPuzzleBulundu = true;
+                            Console.SetCursorPosition(0, UIHeight + 7);
+                            Console.WriteLine($"Suitable puzzle found after {denemeSayisi} attempts with regularity: {mevcutRegularity:F4}   ");
+                        }
+                    }
+                    if (denemeSayisi % 100 == 0)
+                    {
+                        Console.SetCursorPosition(0, UIHeight + 6);
+                        Console.Write($"Attempts: {denemeSayisi} | Last Found Reg: {mevcutRegularity:F4}   ");
+                    }
+                }
+
+                // melih parçalar oluşturulduktan sonra puzzleı UI içindeki alanda oluştur
+                int toplamParcaSayisi = parçaSayacı;
+                bool puzzleOlusturuldu = PuzzleOlustur(toplamParcaSayisi);
+
+                if (puzzleOlusturuldu)
+                {
+                    // melih puzzle oluşturuldu  UI içindeki alana çiz
+                    PuzzleCizUIIcinde(UIWidth, UIHeight, harfListesi);
+                }
+                else
+                {
+                    Console.SetCursorPosition(0, UIHeight + 3);
+                    Console.WriteLine("Puzzle could not be formed. Try again.");
+                }
+
+                Console.SetCursorPosition(0, UIHeight + 8);
+                Console.Write("Press any key to exit...");
+                Console.ReadKey();
+            }
+        }
+
+        // parçaları rastgele oluşturup array içine kaydettik
+        static void Parça_Oluştur(int harfSayısı, int parçaIndex)
+        {
+
+            ParcaBlokSayilari[parçaIndex] = harfSayısı;
+
+            //döngülü işlemler için matrisi sıfırladık
+            for (int r = 0; r < 5; r++) for (int c = 0; c < 5; c++) ParcaMatrisi[0, parçaIndex, r, c] = 0;
+
+            //iki farklı dizide kayıt altına almış olduk
+            int[] harfSatırları = new int[harfSayısı];
+            int[] harfSütunları = new int[harfSayısı];
+            int sayaç = 0;
+
+            int ilkHarfSatırı = zar.Next(0, 5);
+            int ilkHarfSütunu = zar.Next(0, 5);
+
+            // Yayılma çizimi için ilk noktayı kayıt ettik
+            harfSatırları[sayaç] = ilkHarfSatırı;
+            harfSütunları[sayaç] = ilkHarfSütunu;
+            ParcaMatrisi[0, parçaIndex, ilkHarfSatırı, ilkHarfSütunu] = 1; // Dolu parça == 1
+            sayaç++;
+
+            //yayılım işlemi
+            for (int i = 1; i < harfSayısı; i++)
+            {
+                int rastgeleHarfSeç = zar.Next(0, sayaç);
+                int yön = zar.Next(1, 5); // Random yönde yayılım ( 1: yukarı, 2: sağ, 3: aşağı, 4: sol)
+
+                int yeniSatir = harfSatırları[rastgeleHarfSeç];
+                int yeniSutun = harfSütunları[rastgeleHarfSeç];
+
+                if (yön == 1 && harfSatırları[rastgeleHarfSeç] != 0 && ParcaMatrisi[0, parçaIndex, harfSatırları[rastgeleHarfSeç] - 1, harfSütunları[rastgeleHarfSeç]] != 1)
+                {
+                    harfSatırları[sayaç] = harfSatırları[rastgeleHarfSeç] - 1;
+                    harfSütunları[sayaç] = harfSütunları[rastgeleHarfSeç];
+                    ParcaMatrisi[0, parçaIndex, harfSatırları[sayaç], harfSütunları[sayaç]] = 1; // matrixi dolu == 1 yaptık
+                    sayaç++;
+                }
+                else if (yön == 2 && harfSütunları[rastgeleHarfSeç] != 4 && ParcaMatrisi[0, parçaIndex, harfSatırları[rastgeleHarfSeç], harfSütunları[rastgeleHarfSeç] + 1] != 1)
+                {
+                    harfSütunları[sayaç] = harfSütunları[rastgeleHarfSeç] + 1;
+                    harfSatırları[sayaç] = harfSatırları[rastgeleHarfSeç];
+                    ParcaMatrisi[0, parçaIndex, harfSatırları[sayaç], harfSütunları[sayaç]] = 1;
+                    sayaç++;
+                }
+                else if (yön == 3 && harfSatırları[rastgeleHarfSeç] != 4 && ParcaMatrisi[0, parçaIndex, harfSatırları[rastgeleHarfSeç] + 1, harfSütunları[rastgeleHarfSeç]] != 1)
+                {
+                    harfSatırları[sayaç] = harfSatırları[rastgeleHarfSeç] + 1;
+                    harfSütunları[sayaç] = harfSütunları[rastgeleHarfSeç];
+                    ParcaMatrisi[0, parçaIndex, harfSatırları[sayaç], harfSütunları[sayaç]] = 1;
+                    sayaç++;
+                }
+                else if (yön == 4 && harfSütunları[rastgeleHarfSeç] != 0 && ParcaMatrisi[0, parçaIndex, harfSatırları[rastgeleHarfSeç], harfSütunları[rastgeleHarfSeç] - 1] != 1)
+                {
+                    harfSütunları[sayaç] = harfSütunları[rastgeleHarfSeç] - 1;
+                    harfSatırları[sayaç] = harfSatırları[rastgeleHarfSeç];
+                    ParcaMatrisi[0, parçaIndex, harfSatırları[sayaç], harfSütunları[sayaç]] = 1;
+                    sayaç++;
+                }
+                else
+                {
+                    i--; // Geçersiz bir hareket yapıldıysa, döngü sayacınının korunmasını sağladık
+                }
+            } //kontrol yapabilmek için her parçayı sola yasladık
+            VaryasyonuSolaYasla(0, parçaIndex);
+        }
+
+        static void ParcayiCiz(int parçaIndex, int konumSutun, int konumSatir, char parçaHarfi)
+        {
+            for (int r = 0; r < 5; r++)
+            {
+                Console.SetCursorPosition(konumSutun, konumSatir + r);
+                for (int c = 0; c < 5; c++)
+                {
+                    if (ParcaMatrisi[0, parçaIndex, r, c] == 1)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Magenta;
+                        Console.Write(parçaHarfi);
+                        Console.ResetColor();
+                    }
+                    else
+                    {
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.Write("*");
+                        Console.ResetColor();
+                    }
+                }
+            }
+        }
+
+        static void VaryasyonlariOlustur(int parçaIndex)
+        {
+            //2 girdi için birden fazla girmek gibi durumlarda çöküyor. debug lazım
+
+            MatrisiAynala(parçaIndex, 0, 4);
+
+            for (int i = 0; i < 3; i++)
+            {
+                MatrisiDondur(parçaIndex, 0 + i, 0 + i + 1);
+
+                MatrisiDondur(parçaIndex, 4 + i, 4 + i + 1);
+            }
+
+            //kontrol yapabilmek için hizaladık
+            for (int v = 1; v < 8; v++) VaryasyonuSolaYasla(v, parçaIndex);
+        }
+
+        static void MatrisiDondur(int pIndex, int src, int dest)
+        {
+            for (int r = 0; r < 5; r++) // r= row , c=column
+                for (int c = 0; c < 5; c++)
+                {
+                    ParcaMatrisi[dest, pIndex, c, 4 - r] = 0; //döndürme işleminde satırlar sütun konumunda olmakta. sütunlar ise ters satır konumunda
+                    if (ParcaMatrisi[src, pIndex, r, c] == 1) //src veriyi hangi yerden aldığımız
+                        ParcaMatrisi[dest, pIndex, c, 4 - r] = 1; //dest veriyi hangi yere kaydettiğimiz
+                }
+        }
+
+        static void MatrisiAynala(int pIndex, int src, int dest)
+        {
+            for (int r = 0; r < 5; r++)
+                for (int c = 0; c < 5; c++)
+                    ParcaMatrisi[dest, pIndex, r, 4 - c] = ParcaMatrisi[src, pIndex, r, c];
+        }
+
+        static void VaryasyonuSolaYasla(int pozisyon, int pIndex)
+        {
+            int minRow = 5, minC = 5;
+            //her kareyi gezip en küçük dolu satır ve sütunu bulduk. konumu 0-0 yaparak sola kaydırdık
+            for (int r = 0; r < 5; r++)
+                for (int c = 0; c < 5; c++)
+                    if (ParcaMatrisi[pozisyon, pIndex, r, c] == 1)
+                    {
+                        if (r < minRow) minRow = r;
+                        if (c < minC) minC = c;
+                    }
+            //zaten en sola yaslı ise işlem yapma
+            if (minRow == 0 && minC == 0) return;
+
+            int[,] temp = new int[5, 5];
+            for (int r = 0; r < 5; r++)
+                for (int c = 0; c < 5; c++)
+                    if (ParcaMatrisi[pozisyon, pIndex, r, c] == 1)
+                        temp[r - minRow, c - minC] = 1;
+            //main matrixi sola kaymış haliyle güncelledik
+            for (int r = 0; r < 5; r++)
+                for (int c = 0; c < 5; c++)
+                    ParcaMatrisi[pozisyon, pIndex, r, c] = temp[r, c];
+        }
+
+        //güncelden başlayıp parçanın öncekilerle kopya olup olmadığını kontrol ettik
+        static bool KopyaVarMi(int current)
+        {
+            for (int previous = 0; previous < current; previous++)
+            {
+                //blok sayıları eşit değilse kopya olamaz. pas geç
+                if (ParcaBlokSayilari[current] != ParcaBlokSayilari[previous])
+                    continue;
+
+                for (int v = 0; v < 8; v++)
+                {
+                    if (MatrislerEsitMi(v, current, 0, previous))
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        static bool MatrislerEsitMi(int varyasyon1, int parçaidx1, int varyasyon2, int parçaidx2)
+        {
+            for (int r = 0; r < 5; r++)
+                for (int c = 0; c < 5; c++)
+                    if (ParcaMatrisi[varyasyon1, parçaidx1, r, c] != ParcaMatrisi[varyasyon2, parçaidx2, r, c])
+                        return false;
+            return true;
+        }
+
+        // melih puzzle oluşturma fonksiyonu ve parçaları alana yerleştirme
+        static bool PuzzleOlustur(int parcaSayisi)
+        {
+            // alanını sıfırla sorun çıkmaması için
+            for (int r = 0; r < 20; r++)
+                for (int c = 0; c < 30; c++)
+                    PuzzleAlani[r, c] = 0;
+
+            // ilk parçayı merkeze yakın yerleştir ( merkezden dağılımı sağlamak için )
+            int merkezSatir = 10;
+            int merkezSutun = 15;
+
+            // ilk koyulacak parça için rastgele varyasyon seç
+            int varyasyon = zar.Next(0, 8);
+            ParcaKullanilanVaryasyon[0] = varyasyon;
+
+            if (!ParcayiYerlestir(0, varyasyon, merkezSatir, merkezSutun))
+            {
+                return false;
+            }
+
+            // diğer parçaları sırayla yerleştir
+            for (int p = 1; p < parcaSayisi; p++)
+            {
+                bool yerlesti = false;
+                int denemeSayisi = 0;
+                int maxDeneme = 500; // her parça için maksimum deneme sayısı ( sonsuz döngüye girmemesi için )
+
+                while (!yerlesti && denemeSayisi < maxDeneme)
+                {
+                    // rastgele varyasyon seç
+                    varyasyon = zar.Next(0, 8);
+
+                    int[] konum = MerkeziKonumBul(p, varyasyon);
+
+                    if (konum != null)
+                    {
+                        int denemeSatir = konum[0];
+                        int denemeSutun = konum[1];
+
+                        // parçayı yerleştirmeyi dene
+                        if (ParcayiYerlestir(p, varyasyon, denemeSatir, denemeSutun))
+                        {
+                            yerlesti = true;
+                            ParcaKullanilanVaryasyon[p] = varyasyon;
+                        }
+                    }
+
+                    denemeSayisi++;
+                }
+
+                if (!yerlesti)
+                {
+                    return false; // parça yerleştirilemedi
+                }
+            }
+
+            return true;
+        }
+
+        // melih parçayı belirtilen konuma yerleştirmeyi dene
+        static bool ParcayiYerlestir(int parcaIndex, int varyasyon, int baslangicSatir, int baslangicSutun)
+        {
+            // yerleştirilebilir mi kontrol et
+            for (int r = 0; r < 5; r++)
+            {
+                for (int c = 0; c < 5; c++)
+                {
+                    if (ParcaMatrisi[varyasyon, parcaIndex, r, c] == 1)
+                    {
+                        int hedefSatir = baslangicSatir + r;
+                        int hedefSutun = baslangicSutun + c;
+
+                        // sınır kontrolü
+                        if (hedefSatir < 0 || hedefSatir >= 20 || hedefSutun < 0 || hedefSutun >= 30)
+                            return false;
+
+                        // çakışma kontrolü
+                        if (PuzzleAlani[hedefSatir, hedefSutun] != 0)
+                            return false;
+                    }
+                }
+            }
+
+            // ilk parça değilse komşuluk kontrolü yap ( bağlantı olmalı )
+            if (parcaIndex > 0)
+            {
+                bool komsulukVar = false;
+                for (int r = 0; r < 5; r++)
+                {
+                    for (int c = 0; c < 5; c++)
+                    {
+                        if (ParcaMatrisi[varyasyon, parcaIndex, r, c] == 1)
+                        {
+                            int hedefSatir = baslangicSatir + r;
+                            int hedefSutun = baslangicSutun + c;
+
+                            // 4 yönde komşu var mı kontrol et
+                            if ((hedefSatir > 0 && PuzzleAlani[hedefSatir - 1, hedefSutun] != 0) ||
+                                (hedefSatir < 19 && PuzzleAlani[hedefSatir + 1, hedefSutun] != 0) ||
+                                (hedefSutun > 0 && PuzzleAlani[hedefSatir, hedefSutun - 1] != 0) ||
+                                (hedefSutun < 29 && PuzzleAlani[hedefSatir, hedefSutun + 1] != 0))
+                            {
+                                komsulukVar = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (komsulukVar) break;
+                }
+
+                if (!komsulukVar)
+                    return false;
+            }
+
+            // yerleştir ( parça numarasını +1 olarak kaydet 0 boş demek)
+            for (int r = 0; r < 5; r++)
+            {
+                for (int c = 0; c < 5; c++)
+                {
+                    if (ParcaMatrisi[varyasyon, parcaIndex, r, c] == 1)
+                    {
+                        int hedefSatir = baslangicSatir + r;
+                        int hedefSutun = baslangicSutun + c;
+                        PuzzleAlani[hedefSatir, hedefSutun] = parcaIndex + 1;
+                    }
+                }
+            }
+
+            // konumunu kaydet
+            ParcaPuzzleSatir[parcaIndex] = baslangicSatir;
+            ParcaPuzzleSutun[parcaIndex] = baslangicSutun;
+
+            return true;
+        }
+
+
+        // melih puzzleı UI içindeki alana çiz
+        static void PuzzleCizUIIcinde(int UIWidth, int UIHeight, char[] harfListesi)
+        {
+
+            for (int r = 0; r < 20; r++)
+            {
+                for (int c = 0; c < 30; c++)
+                {
+                    Console.SetCursorPosition(2 + c, 2 + r);
+
+                    if (PuzzleAlani[r, c] != 0)
+                    {
+                        int parcaNo = PuzzleAlani[r, c] - 1;
+                        Console.ForegroundColor = ConsoleColor.Cyan;
+                        Console.Write("X");
+                        Console.ResetColor();
+                    }
+                    else
+                    {
+                        Console.ForegroundColor = ConsoleColor.DarkGray;
+                        Console.Write(".");
+                        Console.ResetColor();
+                    }
+                }
+            }
+        }
+
+        //arayüzün içine çizilecek puzzle ve arayüzü fonk olarak yazdırmak işleri kolaylaştıracagı için UI yi fonk yazdırdık
+        static void UI(int genişlik, int yükseklik)
+        {
+            Console.SetCursorPosition(1, 1);
+            Console.Write("+");
+            for (int i = 0; i < genişlik; i++) Console.Write("-");
+            Console.Write("+");
+
+            for (int i = 0; i < yükseklik; i++)
+            {
+                Console.SetCursorPosition(1, 2 + i);
+                Console.Write("|");
+                Console.SetCursorPosition(2 + genişlik, 2 + i);
+                Console.Write("|");
+            }
+
+            Console.SetCursorPosition(1, 2 + yükseklik);
+            Console.Write("+");
+            for (int i = 0; i < genişlik; i++) Console.Write("-");
+            Console.Write("+");
+
+            Console.SetCursorPosition(0, 0);
+        }
+
+        // melih puzzleın merkeze ve her yöne yayılmasını sağlayan fonksiyon
+        static int[] MerkeziKonumBul(int parcaIndex, int varyasyon)
+        {
+            // puzzledeki dolu karelerin listesini al (( alandaki yerleri ))
+            int[] doluSatirlar = new int[600];
+            int[] doluSutunlar = new int[600];
+            int doluSayisi = 0;
+
+            for (int r = 0; r < 20; r++)
+                for (int c = 0; c < 30; c++)
+                    if (PuzzleAlani[r, c] != 0)
+                    {
+                        doluSatirlar[doluSayisi] = r;
+                        doluSutunlar[doluSayisi] = c;
+                        doluSayisi++;
+                    }
+
+            if (doluSayisi == 0) return null;
+
+            // parçanın içindeki dolu blokların listesini al (( parçalardaki yerleri ))
+            int[] parcaSatirlar = new int[25];
+            int[] parcaSutunlar = new int[25];
+            int parcaDoluSayisi = 0;
+
+            for (int r = 0; r < 5; r++)
+                for (int c = 0; c < 5; c++)
+                    if (ParcaMatrisi[varyasyon, parcaIndex, r, c] == 1)
+                    {
+                        parcaSatirlar[parcaDoluSayisi] = r;
+                        parcaSutunlar[parcaDoluSayisi] = c;
+                        parcaDoluSayisi++;
+                    }
+
+            // rastgele denemeler yap
+            int denemeLimiti = 50;
+            for (int i = 0; i < denemeLimiti; i++)
+            {
+                // puzzleden rastgele bir referans kare seç
+                int randPuzzleIdx = zar.Next(0, doluSayisi); // rastgele puzzle sırası
+                int refR = doluSatirlar[randPuzzleIdx];
+                int refC = doluSutunlar[randPuzzleIdx];
+
+                // parçadan rastgele bir referans blok seç ( Bu blok temas edecek )
+                int randParcaIdx = zar.Next(0, parcaDoluSayisi);
+                int pR = parcaSatirlar[randParcaIdx];
+                int pC = parcaSutunlar[randParcaIdx];
+
+                // rastgele bir yön seç ( temas edilecek yönü)
+                int yon = zar.Next(0, 4);
+                // */ 0: Yukarı, 1: Sağ, 2: Aşağı, 3: Sol /*
+
+                int hedefR = refR;
+                int hedefC = refC;
+
+                if (yon == 0) hedefR--;      // yukarısına
+                else if (yon == 1) hedefC++; // sağına
+                else if (yon == 2) hedefR++; // aşağısına
+                else hedefC--;               // soluna
+
+                int sonucR = hedefR - pR;
+                int sonucC = hedefC - pC;
+
+                // elimizdeki 5x5 matrisin alan sınırlarını kontrol ediyor boş kısımları dışarıda kalabiliyor ama dolu kısımlar mutlaka içeride kalmış oluyor
+                if (sonucR >= -4 && sonucR < 20 && sonucC >= -4 && sonucC < 30)
+                {
+                    return new int[] { sonucR, sonucC };
+                }
+            }
+            return null;
+        }
+
+        //kronolojik sıralama için safiyenin kodunu buraya koydum efe
+        static double calculate_regularity(int[,] board)
+        {
+            int total_squares = 0; //kare sayısı
+            int total_perimeter = 0; //çevre
+            int row = board.GetLength(0); //satır sayısı
+            int column = board.GetLength(1); //sütun sayısı
+
+            for (int i = 0; i < row; i++)
+            {
+                for (int j = 0; j < column; j++)
+                {
+                    if (board[i, j] != 0) //kare sayısı için
+                    {
+                        total_squares++;
+
+                        if (i == 0 || board[i - 1, j] == 0) //yukarı için
+                            total_perimeter++;
+                        if (i == row - 1 || board[i + 1, j] == 0) //aşağı için
+                            total_perimeter++;
+                        if (j == 0 || board[i, j - 1] == 0) //sol için
+                            total_perimeter++;
+                        if (j == column - 1 || board[i, j + 1] == 0)  //sağ için
+                            total_perimeter++;
+                    }
+                }
+            }
+            if (total_perimeter == 0)
+                return 0; //payda sıfır olmasın diye
+
+            double dividedBy4 = total_perimeter / 4.0;
+            double denominator = Math.Pow(dividedBy4, 2); //denaminator=payda
+            
+            return total_squares / denominator;
+        }
+        static void regularityInterval(out double min, out double max)
+        {
+            Console.SetCursorPosition(0, 24);
+            Console.Write("Min. Regularity: ");
+            min = Convert.ToDouble(Console.ReadLine());
+
+            Console.SetCursorPosition(0, 25);
+            Console.Write("Max. Regularity: ");
+            max = Convert.ToDouble(Console.ReadLine());
+        }
+        
+        //
+        static void hareket()
+        {
+            int x = 10;
+            int y = 10;
+            char pChar = 'V';
+
+            ConsoleKeyInfo key;
+            karakterCizme(x, y, pChar);
+
+            while (true)
+            {
+                key = Console.ReadKey(true);
+                arkayiTemizle(x, y);
+
+                switch (key.Key)
+                {
+                    case ConsoleKey.RightArrow:
+                        x++;
+                        break;
+                    case ConsoleKey.LeftArrow:
+                        x--;
+                        break;
+                    case ConsoleKey.UpArrow:
+                        y--;
+                        break;
+                    case ConsoleKey.DownArrow:
+                        y++;
+                        break;
+                }
+                karakterCizme(x, y, pChar);
+            }
+        }
+
+        static void karakterCizme(int x, int y, char character) //aralik belirleme
+        {
+            if (x >= 0 && x < Console.WindowWidth && y >= 0 && y < Console.WindowHeight)
+            {
+                Console.SetCursorPosition(x, y);
+                Console.Write(character);
+            }
+        }
+
+        static void arkayiTemizle(int x, int y)
+        {
+            if (x < 0 || y < 0 || x >= Console.WindowWidth || y >= Console.WindowHeight)
+                return;
+
+            int r = x - 2;
+            int c = y - 2;
+
+            if (r >= 0 && r < 20 && c >= 0 && c < 30)
+            {
+                int cellValue = PuzzleAlani[r, c];
+
+                if (cellValue != 0)
+                {
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.Write(harfListesi[cellValue - 1]);
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkGray;
+                    Console.Write(".");
+                }
+            }
+            else
+                Console.Write(" ");
+            Console.ResetColor();
+        }
+    }
+}
+
