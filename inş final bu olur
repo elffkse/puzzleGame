@@ -1006,8 +1006,7 @@ namespace PBL
 
         static void Main(string[] args)
         {
-            Console.SetWindowSize(120, 40);
-            Console.SetBufferSize(120, 40);
+            
             while (true)
             {
                 bestRegularityFound = 0;
