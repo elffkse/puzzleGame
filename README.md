@@ -12,5 +12,5 @@ The game is built on a puzzle system where the board is generated through comple
 
 ### Technologies Used
 * **Language:** C#
-* **Framework:** .NET (Buraya kullandığınız versiyonu yazabilirsiniz, örn: .NET 6.0 / Windows Forms / WPF)
+* **Framework:** .NET
 * **Concept:** Computational calculation and regularity optimization.
