@@ -13,16 +13,13 @@ namespace PBL
         static char[] letterList = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T' };
 
         static bool[] PieceUsed = new bool[20];
-        static int[] PieceBlockCounts = new int[20]; // for duplicate check
+        static int[] PieceBlockCounts = new int[20];
 
-        // game area used for puzzle creation
         static int[,] PuzzleBoard = new int[20, 30];
 
-        // to store the position of each piece in the puzzle
         static int[] PiecePuzzleRow = new int[20];
         static int[] PiecePuzzleCol = new int[20];
         static int[] PieceUsedVariation = new int[20];
-        // pieces were generated randomly and saved into array
 
         static int[,] OriginalPuzzle = new int[20, 30];
         static int currentRound = 1;
@@ -42,19 +39,16 @@ namespace PBL
 
             while (!pieceCompleted)
             {
-                // reset matrix for loop operations
                 for (int r = 0; r < 5; r++)
                     for (int c = 0; c < 5; c++)
                         PieceMatrix[0, pieceIndex, r, c] = 0;
 
-                // recorded in a single 2D array [index, 0] = row, [index, 1] = col
                 int[,] letterCoordinates = new int[letterCount, 2];
                 int counter = 0;
 
                 int firstLetterRow = random.Next(0, 5);
                 int firstLetterCol = random.Next(0, 5);
 
-                // recorded first point for spread drawing
                 letterCoordinates[counter, 0] = firstLetterRow;
                 letterCoordinates[counter, 1] = firstLetterCol;
                 PieceMatrix[0, pieceIndex, firstLetterRow, firstLetterCol] = 1;
@@ -63,7 +57,6 @@ namespace PBL
                 int totalAttempts = 0;
                 int maxAttempts = 5000;
 
-                // spread operation
                 while (counter < letterCount && totalAttempts < maxAttempts)
                 {
                     int selectRandomLetter = random.Next(0, counter);
@@ -108,7 +101,6 @@ namespace PBL
                     pieceCompleted = true;
             }
 
-            // aligned every piece to the left for checking
             AlignVariationLeft(0, pieceIndex);
         }
 
@@ -146,18 +138,17 @@ namespace PBL
                 RotateMatrix(pieceIndex, 4 + i, 4 + i + 1);
             }
 
-            // aligned for checking
             for (int v = 1; v < 8; v++) AlignVariationLeft(v, pieceIndex);
         }
 
         static void RotateMatrix(int pIndex, int src, int dest)
         {
-            for (int r = 0; r < 5; r++) // r = row , c = column
+            for (int r = 0; r < 5; r++)
                 for (int c = 0; c < 5; c++)
                 {
-                    PieceMatrix[dest, pIndex, c, 4 - r] = 0; // rows become column position in rotation. columns become inverse row position
-                    if (PieceMatrix[src, pIndex, r, c] == 1) // src is where we get data from
-                        PieceMatrix[dest, pIndex, c, 4 - r] = 1; // dest is where we save data to
+                    PieceMatrix[dest, pIndex, c, 4 - r] = 0;
+                    if (PieceMatrix[src, pIndex, r, c] == 1)
+                        PieceMatrix[dest, pIndex, c, 4 - r] = 1;
                 }
         }
 
@@ -171,7 +162,6 @@ namespace PBL
         static void AlignVariationLeft(int position, int pIndex)
         {
             int minRow = 5, minC = 5;
-            // traversed every square to find the smallest occupied row and col. shifted left by setting position to 0-0
             for (int r = 0; r < 5; r++)
                 for (int c = 0; c < 5; c++)
                     if (PieceMatrix[position, pIndex, r, c] == 1)
@@ -179,7 +169,6 @@ namespace PBL
                         if (r < minRow) minRow = r;
                         if (c < minC) minC = c;
                     }
-            // if already aligned left do not process
             if (minRow == 0 && minC == 0) return;
 
             int[,] temp = new int[5, 5];
@@ -187,25 +176,20 @@ namespace PBL
                 for (int c = 0; c < 5; c++)
                     if (PieceMatrix[position, pIndex, r, c] == 1)
                         temp[r - minRow, c - minC] = 1;
-            // updated main matrix with shifted version
             for (int r = 0; r < 5; r++)
                 for (int c = 0; c < 5; c++)
                     PieceMatrix[position, pIndex, r, c] = temp[r, c];
         }
 
-        // started from current and checked if piece is a duplicate of previous ones
         static bool HasDuplicate(int current)
         {
             for (int previous = 0; previous < current; previous++)
             {
-                // if block counts are not equal cannot be duplicate.
                 if (PieceBlockCounts[current] != PieceBlockCounts[previous])
                     continue;
 
-                // check 8 variations of current piece
                 for (int v_current = 0; v_current < 8; v_current++)
                 {
-                    // check 8 variations of previous piece
                     for (int v_previous = 0; v_previous < 8; v_previous++)
                     {
 
@@ -226,19 +210,15 @@ namespace PBL
             return true;
         }
 
-        // puzzle creation function and placing pieces on area
         static bool CreatePuzzle(int pieceCount)
         {
-            // reset area to avoid issues
             for (int r = 0; r < 20; r++)
                 for (int c = 0; c < 30; c++)
                     PuzzleBoard[r, c] = 0;
 
-            // place first piece near center ( to ensure distribution from center )
             int centerRow = 10;
             int centerCol = 15;
 
-            // select random variation for first piece to be placed
             int variation = random.Next(0, 8);
             PieceUsedVariation[0] = variation;
 
@@ -247,16 +227,14 @@ namespace PBL
                 return false;
             }
 
-            // place other pieces in order
             for (int p = 1; p < pieceCount; p++)
             {
                 bool placed = false;
                 int attemptCount = 0;
-                int maxAttempts = 500; // max attempts for each piece ( to avoid infinite loop )
+                int maxAttempts = 500;
 
                 while (!placed && attemptCount < maxAttempts)
                 {
-                    // select random variation
                     variation = random.Next(0, 8);
 
                     int[]? position = FindCentralPosition(p, variation);
@@ -266,7 +244,6 @@ namespace PBL
                         int attemptRow = position[0];
                         int attemptCol = position[1];
 
-                        // try to place piece
                         if (PlacePiece(p, variation, attemptRow, attemptCol))
                         {
                             placed = true;
@@ -278,17 +255,15 @@ namespace PBL
 
                 if (!placed)
                 {
-                    return false; // piece could not be placed
+                    return false;
                 }
             }
 
             return true;
         }
 
-        // try to place piece at specified position
         static bool PlacePiece(int pieceIndex, int variation, int startRow, int startCol)
         {
-            // check if can be placed
             for (int r = 0; r < 5; r++)
             {
                 for (int c = 0; c < 5; c++)
@@ -298,18 +273,15 @@ namespace PBL
                         int targetRow = startRow + r;
                         int targetCol = startCol + c;
 
-                        // boundary check
                         if (targetRow < 0 || targetRow >= 20 || targetCol < 0 || targetCol >= 30)
                             return false;
 
-                        // collision check
                         if (PuzzleBoard[targetRow, targetCol] != 0)
                             return false;
                     }
                 }
             }
 
-            // if not first piece check neighbors ( must be connected )
             if (pieceIndex > 0)
             {
                 bool hasNeighbor = false;
@@ -322,7 +294,6 @@ namespace PBL
                             int targetRow = startRow + r;
                             int targetCol = startCol + c;
 
-                            // check neighbor in 4 directions
                             if ((targetRow > 0 && PuzzleBoard[targetRow - 1, targetCol] != 0) ||
                                 (targetRow < 19 && PuzzleBoard[targetRow + 1, targetCol] != 0) ||
                                 (targetCol > 0 && PuzzleBoard[targetRow, targetCol - 1] != 0) ||
@@ -340,7 +311,6 @@ namespace PBL
                     return false;
             }
 
-            //  ( save piece number as +1, 0 means empty )
             for (int r = 0; r < 5; r++)
             {
                 for (int c = 0; c < 5; c++)
@@ -354,14 +324,12 @@ namespace PBL
                 }
             }
 
-            // save position
             PiecePuzzleRow[pieceIndex] = startRow;
             PiecePuzzleCol[pieceIndex] = startCol;
 
             return true;
         }
 
-        // draw puzzle inside UI area
         static void DrawPuzzleInUI(int UIWidth, int UIHeight, char[] letterList)
         {
             for (int r = 0; r < 20; r++)
@@ -387,7 +355,6 @@ namespace PBL
             UpdateRegularityDisplay();
         }
 
-        //fixed reg ui
         static void UpdateRegularityDisplay()
         {
             Console.SetCursorPosition(2, 30);
@@ -396,7 +363,6 @@ namespace PBL
             Console.ResetColor();
         }
 
-        // wrote UI as func to easily print puzzle and UI interface inside UI
         static void UI(int width, int height)
         {
             Console.SetCursorPosition(1, 1);
@@ -420,10 +386,8 @@ namespace PBL
             Console.SetCursorPosition(0, 0);
         }
 
-        // function enabling puzzle to spread from center and to every direction
         static int[]? FindCentralPosition(int pieceIndex, int variation)
         {
-            // get list of filled squares in puzzle (( places in area ))
             int[] filledRows = new int[600];
             int[] filledCols = new int[600];
             int filledCount = 0;
@@ -439,7 +403,6 @@ namespace PBL
 
             if (filledCount == 0) return null;
 
-            // get list of filled blocks inside piece (( places in pieces ))
             int[] pieceRows = new int[25];
             int[] pieceCols = new int[25];
             int pieceFilledCount = 0;
@@ -453,36 +416,30 @@ namespace PBL
                         pieceFilledCount++;
                     }
 
-            // make random attempts
             int attemptLimit = 100;
             for (int i = 0; i < attemptLimit; i++)
             {
-                // select random reference square from puzzle
-                int randPuzzleIdx = random.Next(0, filledCount); // random puzzle order
+                int randPuzzleIdx = random.Next(0, filledCount);
                 int refR = filledRows[randPuzzleIdx];
                 int refC = filledCols[randPuzzleIdx];
 
-                // select random reference block from piece ( This block will touch )
                 int randPieceIdx = random.Next(0, pieceFilledCount);
                 int pR = pieceRows[randPieceIdx];
                 int pC = pieceCols[randPieceIdx];
 
-                // select random direction ( direction to touch)
                 int direction = random.Next(0, 4);
-                // / 0: Up, 1: Right, 2: Down, 3: Left /
 
                 int targetR = refR;
                 int targetC = refC;
 
-                if (direction == 0) targetR--;      // above
-                else if (direction == 1) targetC++; // right
-                else if (direction == 2) targetR++; // below
-                else targetC--;                   // left
+                if (direction == 0) targetR--;
+                else if (direction == 1) targetC++;
+                else if (direction == 2) targetR++;
+                else targetC--;
 
                 int resultR = targetR - pR;
                 int resultC = targetC - pC;
 
-                // checking area boundaries of 5x5 matrix we have, empty parts can stay outside but filled parts definitely stay inside
                 if (resultR >= 0 && resultR <= 15 && resultC >= 0 && resultC <= 25)
                 {
                     return new int[] { resultR, resultC };
@@ -493,32 +450,32 @@ namespace PBL
 
         static double calculate_regularity(int[,] board)
         {
-            int total_squares = 0; // square count
-            int total_perimeter = 0; // perimeter
-            int row = board.GetLength(0); // row count
-            int column = board.GetLength(1); // column count
+            int total_squares = 0;
+            int total_perimeter = 0;
+            int row = board.GetLength(0);
+            int column = board.GetLength(1);
 
             for (int i = 0; i < row; i++)
             {
                 for (int j = 0; j < column; j++)
                 {
-                    if (board[i, j] != 0) // for square count
+                    if (board[i, j] != 0)
                     {
                         total_squares++;
 
-                        if (i == 0 || board[i - 1, j] == 0) // for up
+                        if (i == 0 || board[i - 1, j] == 0)
                             total_perimeter++;
-                        if (i == row - 1 || board[i + 1, j] == 0) // for down
+                        if (i == row - 1 || board[i + 1, j] == 0)
                             total_perimeter++;
-                        if (j == 0 || board[i, j - 1] == 0) // for left
+                        if (j == 0 || board[i, j - 1] == 0)
                             total_perimeter++;
-                        if (j == column - 1 || board[i, j + 1] == 0)  // for right
+                        if (j == column - 1 || board[i, j + 1] == 0)
                             total_perimeter++;
                     }
                 }
             }
             if (total_perimeter == 0)
-                return 0; // so denominator isn't zero
+                return 0;
 
             double dividedBy4 = total_perimeter / 4.0;
             double denominator = Math.Pow(dividedBy4, 2);
@@ -544,23 +501,19 @@ namespace PBL
                 for (int c = 0; c < 30; c++)
                     PuzzleBoard[r, c] = 0;
 
-            // start position
             int cursorX = 10;
             int cursorY = 10;
 
-            // starts default as A
             int selectedPieceIndex = 0;
 
             Console.CursorVisible = false;
             ConsoleKeyInfo pressedKey;
 
-            // Make all pieces usable
             for (int i = 0; i < totalPieces; i++)
             {
                 PieceUsed[i] = false;
             }
 
-            // draw selected piece before entering loop
             int currentVariation = PieceUsedVariation[selectedPieceIndex];
             for (int r = 0; r < 5; r++)
             {
@@ -614,21 +567,16 @@ namespace PBL
                 int oldPieceIndex = selectedPieceIndex;
                 int oldVariationIndex = PieceUsedVariation[selectedPieceIndex];
 
-                // piece selection
-                // pressed key check
                 for (int i = 0; i < totalPieces; i++)
                 {
-                    // match check
                     if (pressedKey.Key.ToString() == letterList[i].ToString())
                     {
                         selectedPieceIndex = i;
                     }
                 }
 
-                // movement and transformations
                 switch (pressedKey.Key)
                 {
-                    // movement with arrow keys
                     case ConsoleKey.RightArrow:
                         if (cursorX < 26) cursorX++;
                         break;
@@ -642,7 +590,6 @@ namespace PBL
                         if (cursorY < 16) cursorY++;
                         break;
 
-                    // rotation operation z
                     case ConsoleKey.Z:
                         int oldVariation = PieceUsedVariation[selectedPieceIndex];
 
@@ -654,7 +601,6 @@ namespace PBL
                             PieceUsedVariation[selectedPieceIndex] = 4 + ((oldVariation - 4 + 1) % 4);
                         break;
 
-                    // reverse operation x
                     case ConsoleKey.X:
                         int currentVar = PieceUsedVariation[selectedPieceIndex];
                         int rotation = currentVar % 4;
@@ -784,7 +730,6 @@ namespace PBL
                                 }
                             }
 
-                            // THEN: process into matrix and draw as Magenta
                             char pieceLetter = letterList[selectedPieceIndex];
                             for (int r = 0; r < 5; r++)
                             {
@@ -877,11 +822,10 @@ namespace PBL
             }
         }
 
-        static void DrawCharacter(int x, int y, char character) // function to draw character
+        static void DrawCharacter(int x, int y, char character)
         {
             if (x >= 0 && x < Console.WindowWidth && y >= 0 && y < Console.WindowHeight)
             {
-                //piece not rotated on puzzle
                 Console.SetCursorPosition(x, y);
                 Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.Write(character);
@@ -991,7 +935,6 @@ namespace PBL
                 {
                     if (PuzzleBoard[r, c] != 0)
                     {
-                        //final puzzle with letters instead of X
                         Console.ForegroundColor = ConsoleColor.Magenta;
                         Console.Write(letterList[PuzzleBoard[r, c] - 1]);
                         Console.ResetColor();
@@ -1077,7 +1020,7 @@ namespace PBL
                     UI(UIWidth, UIHeight);
                     Console.ResetColor();
 
-                    Console.SetCursorPosition(0, 0); // after UI drawn return to start on screen
+                    Console.SetCursorPosition(0, 0);
                     if (flag == 0)
                     {
                         Console.Write("Enter the number of squares for each piece (space-separated): ");
@@ -1479,7 +1422,6 @@ namespace PBL
                     Console.WriteLine("===============================================================");
                     Console.WriteLine($"       ROUND {currentRound} - Press ENTER to start, Q to quit");
                     Console.WriteLine($"       Current Score: {totalScore}");
-                    // current best regularity
                     Console.WriteLine($"       Best Regularity: {bestRegularityFound:F4}");
                     Console.WriteLine("===============================================================");
                     Console.ResetColor();
